@@ -2,38 +2,64 @@
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 
+// Detect mobile device
+const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+
+// Adjust canvas size for mobile
+function resizeCanvas() {
+  if (isMobile) {
+    const maxWidth = window.innerWidth * 0.95;
+    const maxHeight = window.innerHeight * 0.7;
+    canvas.width = Math.min(400, maxWidth);
+    canvas.height = Math.min(300, maxHeight);
+  }
+}
+
+resizeCanvas();
+window.addEventListener('resize', resizeCanvas);
+
 const WORLD_WIDTH = 2000;
 const GROUND_HEIGHT = 40;
-const GROUND_Y = canvas.height - GROUND_HEIGHT;
+let GROUND_Y = canvas.height - GROUND_HEIGHT;
 
 const GRAVITY = 0.5;
 const JUMP_POWER = -12;
 const MOVE_SPEED = 4;
 
-const PLAYER_NAME = 'Player1'; // change this to your name
+const PLAYER_NAME = 'Player1';
 
-// Camera follows the player
 let cameraX = 0;
 
-// Level / game state
 const MAX_LEVEL = 10;
 let currentLevel = 1;
 let score = 0;
 let levelComplete = false;
 let gameComplete = false;
 
-// ===== 2. Base world data (reused for all levels) =====
+// ===== Sound effects =====
+const sounds = {
+  jump: new Audio('sounds/jump.mp3'),
+  coin: new Audio('sounds/coin.mp3'),
+  death: new Audio('sounds/death.mp3'),
+  levelComplete: new Audio('sounds/level-complete.mp3')
+};
+
+sounds.jump.volume = 0.3;
+sounds.coin.volume = 0.4;
+sounds.death.volume = 0.5;
+sounds.levelComplete.volume = 0.4;
+
+function playSound(sound) {
+  sound.play().catch(() => {});
+}
+
+// ===== 2. Base world data =====
 const basePlatforms = [
-  // start area
   { x: 140, y: 220, width: 120, height: 15 },
   { x: 320, y: 190, width: 120, height: 15 },
-
-  // middle
   { x: 550, y: 210, width: 100, height: 15 },
   { x: 720, y: 170, width: 110, height: 15 },
   { x: 900, y: 200, width: 130, height: 15 },
-
-  // late
   { x: 1150, y: 190, width: 100, height: 15 },
   { x: 1350, y: 160, width: 100, height: 15 },
   { x: 1550, y: 210, width: 120, height: 15 },
@@ -56,12 +82,10 @@ const baseCoins = [
   { x: 1720, y: 140, size: 14 }
 ];
 
-// Active world data (cloned per level)
 let platforms = [];
 let hazards = [];
 let coins = [];
 
-// Goal (finish flag)
 const goal = {
   x: WORLD_WIDTH - 80,
   y: GROUND_Y - 80,
@@ -86,16 +110,12 @@ let input = {
   jump: false
 };
 
-// ===== 5. Keyboard handling =====
+// ===== 5. Keyboard handling (PC) =====
 document.addEventListener('keydown', (e) => {
   if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') input.left = true;
   if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') input.right = true;
   if (e.code === 'Space' || e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W') input.jump = true;
-
-  // Press R to restart the whole game from level 1
-  if (e.key === 'r' || e.key === 'R') {
-    restartGame();
-  }
+  if (e.key === 'r' || e.key === 'R') restartGame();
 });
 
 document.addEventListener('keyup', (e) => {
@@ -104,7 +124,82 @@ document.addEventListener('keyup', (e) => {
   if (e.code === 'Space' || e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W') input.jump = false;
 });
 
-// ===== 6. Helpers =====
+// ===== 6. Touch controls (Mobile) =====
+let touchStartX = 0;
+let touchStartY = 0;
+
+if (isMobile) {
+  document.getElementById('mobileControls').style.display = 'block';
+  
+  // On-screen button handlers
+  document.getElementById('btnLeft').addEventListener('touchstart', (e) => {
+    e.preventDefault();
+    input.left = true;
+  });
+  document.getElementById('btnLeft').addEventListener('touchend', (e) => {
+    e.preventDefault();
+    input.left = false;
+  });
+
+  document.getElementById('btnRight').addEventListener('touchstart', (e) => {
+    e.preventDefault();
+    input.right = true;
+  });
+  document.getElementById('btnRight').addEventListener('touchend', (e) => {
+    e.preventDefault();
+    input.right = false;
+  });
+
+  document.getElementById('btnJump').addEventListener('touchstart', (e) => {
+    e.preventDefault();
+    input.jump = true;
+  });
+  document.getElementById('btnJump').addEventListener('touchend', (e) => {
+    e.preventDefault();
+    input.jump = false;
+  });
+
+  // Swipe controls (alternative)
+  canvas.addEventListener('touchstart', (e) => {
+    e.preventDefault();
+    const touch = e.touches[0];
+    touchStartX = touch.clientX;
+    touchStartY = touch.clientY;
+  });
+
+  canvas.addEventListener('touchend', (e) => {
+    e.preventDefault();
+    if (!e.changedTouches[0]) return;
+    
+    const touch = e.changedTouches[0];
+    const deltaX = touch.clientX - touchStartX;
+    const deltaY = touch.clientY - touchStartY;
+    const minSwipe = 30;
+
+    if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > minSwipe) {
+      if (deltaX > 0) {
+        input.right = true;
+        setTimeout(() => { input.right = false; }, 100);
+      } else {
+        input.left = true;
+        setTimeout(() => { input.left = false; }, 100);
+      }
+    }
+
+    if (Math.abs(deltaY) > Math.abs(deltaX) && Math.abs(deltaY) > minSwipe) {
+      if (deltaY < 0) {
+        input.jump = true;
+        setTimeout(() => { input.jump = false; }, 100);
+      }
+    }
+  });
+
+  canvas.addEventListener('touchmove', (e) => {
+    e.preventDefault();
+  }, { passive: false });
+}
+
+// ===== 7. Helpers =====
 function cloneLevelData() {
   platforms = basePlatforms.map(p => ({ ...p }));
   hazards = baseHazards.map(h => ({ ...h }));
@@ -163,7 +258,6 @@ function rectsOverlap(a, b) {
   );
 }
 
-// send score to Python backend when game is finished
 async function sendHighScore() {
   try {
     await fetch('/api/highscores', {
@@ -187,40 +281,35 @@ function advanceToNextLevel() {
   } else {
     gameComplete = true;
     levelComplete = true;
+    playSound(sounds.levelComplete);
     sendHighScore();
   }
 }
 
-// ===== 7. Update (logic + physics + camera) =====
+// ===== 8. Update =====
 function update() {
   if (gameComplete) return;
 
   const previousY = player.y;
 
-  // Horizontal movement
   if (input.left) player.vx = -MOVE_SPEED;
   else if (input.right) player.vx = MOVE_SPEED;
   else player.vx = 0;
 
-  // Jump (from ground or platform)
   if (input.jump && canJump()) {
     player.vy = JUMP_POWER;
+    playSound(sounds.jump);
   }
 
-  // Gravity
   player.vy += GRAVITY;
-
-  // Apply velocity
   player.x += player.vx;
   player.y += player.vy;
 
-  // World horizontal limits
   if (player.x < 0) player.x = 0;
   if (player.x + player.width > WORLD_WIDTH) {
     player.x = WORLD_WIDTH - player.width;
   }
 
-  // Platform collisions (landing from above)
   const playerBottomBefore = previousY + player.height;
 
   for (const plat of platforms) {
@@ -243,13 +332,11 @@ function update() {
     }
   }
 
-  // Ground collision
   if (player.y + player.height > GROUND_Y) {
     player.y = GROUND_Y - player.height;
     player.vy = 0;
   }
 
-  // Player box for collision checks
   const playerBox = {
     x: player.x,
     y: player.y,
@@ -257,21 +344,20 @@ function update() {
     height: player.height
   };
 
-  // Hazards (death)
   for (const hz of hazards) {
     if (rectsOverlap(playerBox, hz)) {
+      playSound(sounds.death);
       resetLevelState();
       return;
     }
   }
 
-  // Fall off the bottom
   if (player.y > canvas.height + 200) {
+    playSound(sounds.death);
     resetLevelState();
     return;
   }
 
-  // Coins
   for (const coin of coins) {
     if (!coin.active) continue;
 
@@ -285,10 +371,10 @@ function update() {
     if (rectsOverlap(playerBox, coinBox)) {
       coin.active = false;
       score += 1;
+      playSound(sounds.coin);
     }
   }
 
-  // Goal / finish flag
   const goalBox = {
     x: goal.x,
     y: goal.y,
@@ -301,14 +387,13 @@ function update() {
     advanceToNextLevel();
   }
 
-  // Camera follow
   cameraX = player.x - canvas.width / 2;
   if (cameraX < 0) cameraX = 0;
   const maxCamera = WORLD_WIDTH - canvas.width;
   if (cameraX > maxCamera) cameraX = maxCamera;
 }
 
-// ===== 8. Drawing (uses cameraX) =====
+// ===== 9. Drawing =====
 function clearCanvas() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 }
@@ -393,7 +478,7 @@ function drawUI() {
   }
 }
 
-// ===== 9. Game loop =====
+// ===== 10. Game loop =====
 function gameLoop() {
   clearCanvas();
   drawBackground();
@@ -408,6 +493,6 @@ function gameLoop() {
   requestAnimationFrame(gameLoop);
 }
 
-// ===== 10. Init =====
+// ===== 11. Init =====
 cloneLevelData();
 gameLoop();
