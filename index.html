@@ -2,9 +2,8 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>My Canvas Game</title>
-
-  <!-- Connect CSS file -->
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -15,7 +14,16 @@
     Your browser does not support the HTML5 canvas tag.
   </canvas>
 
-  <!-- Connect JavaScript file (usually at the end of body) -->
+  <!-- Mobile control buttons (hidden on PC) -->
+  <div id="mobileControls">
+    <div class="control-row">
+      <button id="btnLeft" class="control-btn">←</button>
+      <button id="btnJump" class="control-btn">↑</button>
+      <button id="btnRight" class="control-btn">→</button>
+    </div>
+  </div>
+
+  <!-- Connect JavaScript file -->
   <script src="game.js"></script>
 </body>
 </html>
