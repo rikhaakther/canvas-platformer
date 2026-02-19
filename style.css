@@ -1,24 +1,80 @@
 /* Make the whole page dark and remove default margins */
 body {
-    margin: 0;
-    padding: 0;
-    background-color: #121212; /* dark background */
-    color: #ffffff;            /* white text */
-    display: flex;
-    justify-content: center;   /* center horizontally */
-    align-items: center;       /* center vertically */
-    height: 100vh;             /* full viewport height */
-    flex-direction: column;    /* stack items top-to-bottom */
-    font-family: Arial, sans-serif;
-  }
-  
-  /* Optional: add some space below the title */
+  margin: 0;
+  padding: 0;
+  background-color: #121212;
+  color: #ffffff;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  flex-direction: column;
+  font-family: Arial, sans-serif;
+  touch-action: none;
+  overflow: hidden;
+}
+
+/* Title styling */
+h1 {
+  margin-bottom: 20px;
+  font-size: clamp(16px, 4vw, 24px);
+}
+
+/* Canvas styling */
+#gameCanvas {
+  background-color: #1e1e1e;
+  border: 2px solid #ffffff;
+  max-width: 100%;
+  max-height: 70vh;
+  width: auto;
+  height: auto;
+}
+
+/* Mobile control buttons */
+#mobileControls {
+  display: none;
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1000;
+}
+
+.control-row {
+  display: flex;
+  gap: 15px;
+}
+
+.control-btn {
+  width: 60px;
+  height: 60px;
+  font-size: 24px;
+  background-color: rgba(255, 255, 255, 0.2);
+  border: 2px solid white;
+  border-radius: 10px;
+  color: white;
+  touch-action: none;
+  user-select: none;
+  cursor: pointer;
+}
+
+.control-btn:active {
+  background-color: rgba(255, 255, 255, 0.4);
+}
+
+/* Mobile-specific styles */
+@media (max-width: 768px) {
   h1 {
-    margin-bottom: 20px;
+    margin-bottom: 10px;
+    font-size: 18px;
   }
-  
-  /* Add a simple border and background to the canvas */
+
   #gameCanvas {
-    background-color: #1e1e1e;
-    border: 2px solid #ffffff;
+    width: 95vw;
+    height: auto;
   }
+
+  #mobileControls {
+    display: block;
+  }
+}
